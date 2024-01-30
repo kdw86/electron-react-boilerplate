@@ -14,6 +14,9 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import { spawn, execSync, exec } from 'child_process';
+import fs from 'fs';
+import Store from 'electron-store';
 
 class AppUpdater {
   constructor() {
@@ -23,12 +26,27 @@ class AppUpdater {
   }
 }
 
+const store = new Store();
 let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
+});
+
+ipcMain.on('electron-store-get', async (event, key) => {
+  event.returnValue = store.get(key);
+});
+ipcMain.on('electron-store-set', async (event, key, val) => {
+  store.set(key, val);
+});
+ipcMain.on('electron-store-delete', async (event, key) => {
+  store.delete(key);
+});
+
+ipcMain.on('test', async (event, arg) => {
+  event.reply('test', );
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -43,23 +61,23 @@ if (isDebug) {
   require('electron-debug')();
 }
 
-const installExtensions = async () => {
-  const installer = require('electron-devtools-installer');
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-  const extensions = ['REACT_DEVELOPER_TOOLS'];
+// const installExtensions = async () => {
+//   const installer = require('electron-devtools-installer');
+//   const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
+//   const extensions = ['REACT_DEVELOPER_TOOLS'];
 
-  return installer
-    .default(
-      extensions.map((name) => installer[name]),
-      forceDownload,
-    )
-    .catch(console.log);
-};
+//   return installer
+//     .default(
+//       extensions.map((name) => installer[name]),
+//       forceDownload,
+//     )
+//     .catch(console.log);
+// };
 
 const createWindow = async () => {
-  if (isDebug) {
-    await installExtensions();
-  }
+  // if (isDebug) {
+  //   await installExtensions();
+  // }
 
   const RESOURCES_PATH = app.isPackaged
     ? path.join(process.resourcesPath, 'assets')
@@ -112,6 +130,75 @@ const createWindow = async () => {
   new AppUpdater();
 };
 
+const envPath = app.isPackaged?path.join(process.resourcesPath, 'env'):path.join(app.getAppPath(), 'env');
+const packagePath = app.isPackaged?path.join(process.resourcesPath, 'env_installer','test.tar.gz'):path.join(app.getAppPath(), 'env_installer','test.tar.gz');
+const platform = process.platform;
+const isWin = platform === 'win32';
+
+const setupPythonEnvironment = () => {
+  try {
+
+    console.log('envPath : ', envPath);
+    console.log('packagePath : ', packagePath);
+    console.log('app.getAppPath() : ', app.getAppPath());
+    console.log('app.getPath(userData) : ', app.getPath('userData'));
+    console.log('app.getPath(home) : ', app.getPath('home'));
+
+    if (!fs.existsSync(envPath)) {
+      execSync(`mkdir "${envPath}"`);
+      const unzipProcess = spawn('tar', ['-xzf', packagePath, '-C', envPath]);
+      unzipProcess.stdout.on('data', (data) => {
+        console.log(`압축 해제 중: ${data}`);
+      });
+      unzipProcess.stderr.on('data', (data) => {
+        console.error(`오류 발생: ${data}`);
+      });
+      unzipProcess.on('close', (code) => {
+        if (code === 0) {
+          console.log('패키지가 성공적으로 압축 해제되었습니다.');
+
+          // 환경 활성화
+          const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
+          console.log('activateScript : ', activateScript)
+          exec(`${activateScript} && python -m pip install numpy`, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`패키지 설치 오류: ${error}`);
+              return;
+            }
+
+            console.log('Python 패키지 설치 과정:');
+            console.log(stdout); // 자세한 설치 과정 출력
+
+            console.log('Python 패키지가 성공적으로 설치되었습니다.');
+
+            // Python 스크립트 실행
+            const pythonScript = `-c "print('Hello, World!')"`;
+
+            exec(`${activateScript} && python ${pythonScript}`, (error, stdout, stderr) => {
+              if (error) {
+                console.error(`Python 스크립트 실행 중 오류 발생: ${error}`);
+                return;
+              }
+
+              console.log('Python 스크립트가 성공적으로 실행되었습니다.');
+              console.log('Python 출력:');
+              console.log(stdout);
+
+            });
+          });
+        } else {
+          console.error(`패키지 압축 해제 중 오류 발생 (코드: ${code})`);
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('Error setting up Python environment:', error);
+  }
+}
+
+
+
 /**
  * Add event listeners...
  */
@@ -134,4 +221,5 @@ app
       if (mainWindow === null) createWindow();
     });
   })
+  .then(setupPythonEnvironment)
   .catch(console.log);
