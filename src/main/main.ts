@@ -47,6 +47,7 @@ ipcMain.on('electron-store-delete', async (event, key) => {
 
 ipcMain.on('test', async (event, arg) => {
   event.reply('test', );
+  installPythonPackages(event);
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -60,7 +61,6 @@ const isDebug =
 if (isDebug) {
   require('electron-debug')();
 }
-
 // const installExtensions = async () => {
 //   const installer = require('electron-devtools-installer');
 //   const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
@@ -156,36 +156,6 @@ const setupPythonEnvironment = () => {
       unzipProcess.on('close', (code) => {
         if (code === 0) {
           console.log('패키지가 성공적으로 압축 해제되었습니다.');
-
-          // 환경 활성화
-          const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
-          console.log('activateScript : ', activateScript)
-          exec(`${activateScript} && python -m pip install numpy`, (error, stdout, stderr) => {
-            if (error) {
-              console.error(`패키지 설치 오류: ${error}`);
-              return;
-            }
-
-            console.log('Python 패키지 설치 과정:');
-            console.log(stdout); // 자세한 설치 과정 출력
-
-            console.log('Python 패키지가 성공적으로 설치되었습니다.');
-
-            // Python 스크립트 실행
-            const pythonScript = `-c "print('Hello, World!')"`;
-
-            exec(`${activateScript} && python ${pythonScript}`, (error, stdout, stderr) => {
-              if (error) {
-                console.error(`Python 스크립트 실행 중 오류 발생: ${error}`);
-                return;
-              }
-
-              console.log('Python 스크립트가 성공적으로 실행되었습니다.');
-              console.log('Python 출력:');
-              console.log(stdout);
-
-            });
-          });
         } else {
           console.error(`패키지 압축 해제 중 오류 발생 (코드: ${code})`);
         }
@@ -197,6 +167,35 @@ const setupPythonEnvironment = () => {
   }
 }
 
+const installPythonPackages = async (event:Electron.IpcMainEvent) => {
+  const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
+  console.log('activateScript : ', activateScript)
+  exec(`${activateScript} && python -m pip install numpy`, (error, stdout, stderr) => {
+    if (error) {
+      event.reply('test', `패키지 설치 오류: ${error}`);
+      return;
+    }
+
+    console.log('Python 패키지 설치 과정:');
+    event.reply('test', stdout);
+
+    console.log('Python 패키지가 성공적으로 설치되었습니다.');
+
+    // Python 스크립트 실행
+    // const pythonScript = `-c "print('Hello, World!')"`;
+
+    // exec(`${activateScript} && python ${pythonScript}`, (error, stdout, stderr) => {
+    //   if (error) {
+    //     console.error(`Python 스크립트 실행 중 오류 발생: ${error}`);
+    //     return;
+    //   }
+
+    //   console.log('Python 스크립트가 성공적으로 실행되었습니다.');
+    //   console.log('Python 출력:');
+    //   console.log(stdout);
+    // });
+  });
+};
 
 
 /**
