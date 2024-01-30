@@ -131,7 +131,7 @@ const createWindow = async () => {
 };
 
 const envPath = app.isPackaged?path.join(process.resourcesPath, 'env'):path.join(app.getAppPath(), 'env');
-const packagePath = app.isPackaged?path.join(process.resourcesPath, 'env_installer','test.tar.gz'):path.join(app.getAppPath(), 'env_installer','test.tar.gz');
+const packagePath = app.isPackaged?path.join(process.resourcesPath, 'env_installer','python399.tar.gz'):path.join(app.getAppPath(), 'env_installer','python399.tar.gz');
 const platform = process.platform;
 const isWin = platform === 'win32';
 
@@ -170,7 +170,8 @@ const setupPythonEnvironment = () => {
 const installPythonPackages = async (event:Electron.IpcMainEvent) => {
   const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
   console.log('activateScript : ', activateScript)
-  exec(`${activateScript} && python -m pip install numpy`, (error, stdout, stderr) => {
+  exec(`${activateScript} && python -m pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html`, (error, stdout, stderr) => {
+
     if (error) {
       event.reply('test', `패키지 설치 오류: ${error}`);
       return;
@@ -178,15 +179,39 @@ const installPythonPackages = async (event:Electron.IpcMainEvent) => {
 
     console.log('Python 패키지 설치 과정:');
     event.reply('test', stdout);
-
-    console.log('Python 패키지가 성공적으로 설치되었습니다.');
-
+    console.log('pytorch 설치 완료.');
+    event.reply('pytorch 설치 완료.');
     // Python 스크립트 실행
     // const pythonScript = `-c "print('Hello, World!')"`;
 
     // exec(`${activateScript} && python ${pythonScript}`, (error, stdout, stderr) => {
     //   if (error) {
     //     console.error(`Python 스크립트 실행 중 오류 발생: ${error}`);
+    //     return;
+    //   }
+
+    //   console.log('Python 스크립트가 성공적으로 실행되었습니다.');
+    //   console.log('Python 출력:');
+    //   console.log(stdout);
+    // });
+  });
+  exec(`${activateScript} && python -m pip install -U openai-whisper`, (error, stdout, stderr) => {
+
+    if (error) {
+      event.reply('test', `패키지 설치 오류: ${error}`);
+      return;
+    }
+
+    console.log('Python 패키지 설치 과정:');
+    event.reply('test', stdout);
+    console.log('whisper 설치 완료.');
+    event.reply('whisper 설치 완료.');
+    // Python 스크립트 실행
+    // const pythonScript = `-c "print('Hello, World!')"`;
+
+    // exec(`${activateScript} && python ${pythonScript}`, (error, stdout, stderr) => {
+    //   if (error) {
+    //     console.error(`Python 스크립트 실행 중 오류 발whisper생: ${error}`);
     //     return;
     //   }
 
