@@ -10,7 +10,10 @@ function Hello() {
 
   useEffect(()=>{
     window.electron.ipcRenderer.on('test', (msg) => {
-      setMsgList([...msgList, msg as string]);
+      if(msg){
+        console.log('test : ', msg)
+        setMsgList((msgList)=>[...msgList, msg as string]);
+      }
     });
   }, []);
 
@@ -25,7 +28,7 @@ function Hello() {
         <Button onClick={test}>테스트</Button>
       </div>
       <div>
-        {msgList.join('\n')}
+        {msgList.map((d,i)=><div key={`test+${i}`}>{d}</div>)}
       </div>
     </>
   );

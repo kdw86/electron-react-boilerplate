@@ -46,8 +46,11 @@ ipcMain.on('electron-store-delete', async (event, key) => {
 });
 
 ipcMain.on('test', async (event, arg) => {
-  event.reply('test', );
   installPythonPackages(event);
+});
+
+ipcMain.on('test2', async (event, arg) => {
+
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -170,55 +173,63 @@ const setupPythonEnvironment = () => {
 const installPythonPackages = async (event:Electron.IpcMainEvent) => {
   const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
   console.log('activateScript : ', activateScript)
-  exec(`${activateScript} && python -m pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html`, (error, stdout, stderr) => {
+  // const installPackagesCmd = `${activateScript} && python -m pip install -v numpy`;
+  const installPackagesCmd = `${activateScript} && conda install -v -y pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch -c conda-forge`;
+  const installPackages = spawn('cmd.exe', ['/c', installPackagesCmd]);
 
-    if (error) {
-      event.reply('test', `패키지 설치 오류: ${error}`);
-      return;
-    }
-
-    console.log('Python 패키지 설치 과정:');
-    event.reply('test', stdout);
-    console.log('pytorch 설치 완료.');
-    event.reply('pytorch 설치 완료.');
-    // Python 스크립트 실행
-    // const pythonScript = `-c "print('Hello, World!')"`;
-
-    // exec(`${activateScript} && python ${pythonScript}`, (error, stdout, stderr) => {
-    //   if (error) {
-    //     console.error(`Python 스크립트 실행 중 오류 발생: ${error}`);
-    //     return;
-    //   }
-
-    //   console.log('Python 스크립트가 성공적으로 실행되었습니다.');
-    //   console.log('Python 출력:');
-    //   console.log(stdout);
-    // });
+  installPackages.stdout.on('data', (data) => {
+    console.log(`패키지 설치 중: ${data}`);
+    event.reply('test', data.toString());
   });
-  exec(`${activateScript} && python -m pip install -U openai-whisper`, (error, stdout, stderr) => {
 
-    if (error) {
-      event.reply('test', `패키지 설치 오류: ${error}`);
-      return;
+  installPackages.stderr.on('data', (data) => {
+    console.error(`패키지 설치 오류: ${data}`);
+  });
+
+  installPackages.on('close', (code) => {
+    if (code === 0) {
+      // console.log('pytorch 패키지가 성공적으로 설치되었습니다.');
+      // event.reply('test', 'pytorch 패키지가 성공적으로 설치되었습니다.');
+      // Python 스크립트 실행
+      const installPackagesCmd = `${activateScript} && python -m pip install -v -U openai-whisper`;
+      const installPackages = spawn('cmd.exe', ['/c', installPackagesCmd]);
+      installPackages.stdout.on('data', (data) => {
+        console.log(`패키지 설치 중: ${data}`);
+        event.reply('test', data.toString());
+      });
+
+      installPackages.stderr.on('data', (data) => {
+        console.error(`패키지 설치 오류: ${data}`);
+      });
+
+      installPackages.on('close', (code) => {
+        if (code === 0) {
+          event.reply('test', '패키지가 성공적으로 설치되었습니다.');
+        } else {
+          console.error(`패키지 설치 중 오류 발생 (코드: ${code})`);
+        }
+      });
+      // const pythonScript = `-c "print('Hello, World!')"`;
+      // const pythonProcess = spawn(`${activateScript} && python`, [pythonScript]);
+
+      // pythonProcess.stdout.on('data', (data) => {
+      //   console.log(`Python 출력: ${data}`);
+      // });
+
+      // pythonProcess.stderr.on('data', (data) => {
+      //   console.error(`Python 오류: ${data}`);
+      // });
+
+      // pythonProcess.on('close', (code) => {
+      //   if (code === 0) {
+      //     console.log('Python 스크립트가 성공적으로 실행되었습니다.');
+      //   } else {
+      //     console.error(`Python 스크립트 실행 중 오류 발생 (코드: ${code})`);
+      //   }
+      // });
+    } else {
+      console.error(`패키지 설치 중 오류 발생 (코드: ${code})`);
     }
-
-    console.log('Python 패키지 설치 과정:');
-    event.reply('test', stdout);
-    console.log('whisper 설치 완료.');
-    event.reply('whisper 설치 완료.');
-    // Python 스크립트 실행
-    // const pythonScript = `-c "print('Hello, World!')"`;
-
-    // exec(`${activateScript} && python ${pythonScript}`, (error, stdout, stderr) => {
-    //   if (error) {
-    //     console.error(`Python 스크립트 실행 중 오류 발whisper생: ${error}`);
-    //     return;
-    //   }
-
-    //   console.log('Python 스크립트가 성공적으로 실행되었습니다.');
-    //   console.log('Python 출력:');
-    //   console.log(stdout);
-    // });
   });
 };
 
