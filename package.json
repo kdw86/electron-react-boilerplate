@@ -233,7 +233,7 @@
     },
     "extraResources": [
       "./assets/**",
-      "env_installer/python399.tar.gz"
+      "venv_installer/test.tar.gz"
     ],
     "publish": {
       "provider": "github",
