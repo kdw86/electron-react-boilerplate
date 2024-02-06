@@ -9,12 +9,19 @@ import './App.css';
 function Hello() {
 
   const [msgList, setMsgList] = useState<string[]>([]);
+  const [vttPath, setVttPath] = useState<string>();
 
   useEffect(()=>{
     window.electron.ipcRenderer.on('test', (msg) => {
       if(msg){
         console.log('test : ', msg)
         setMsgList((msgList)=>[...msgList, msg as string]);
+      }
+    });
+    window.electron.ipcRenderer.on('test2', (path) => {
+      if(path){
+        console.log('test2 : ', path)
+        setVttPath(path as string);
       }
     });
   }, []);
@@ -32,6 +39,13 @@ function Hello() {
     }
   };
 
+  const test3 = ()=> {
+    window.electron.ipcRenderer.sendMessage('test3', ['C:\\Users\\ssade\\OneDrive\\바탕 화면\\테스트\\한글.vtt', 'en']);
+    // if(vttPath){
+    //   window.electron.ipcRenderer.sendMessage('test3', [vttPath, 'ko']);
+    // }
+  }
+
   return (
     <>
       <div>
@@ -39,6 +53,7 @@ function Hello() {
         <Upload {...props}>
           <Button icon={<UploadOutlined />}>영상 파일 선택</Button>
         </Upload>
+        <Button onClick={test3}>번역</Button>
       </div>
       <div>
         {msgList.map((d,i)=><div key={`test+${i}`}>{d}</div>)}

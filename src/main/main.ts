@@ -48,7 +48,11 @@ ipcMain.on('test', async (event, arg) => {
 });
 
 ipcMain.on('test2', async (event, arg) => {
-  test(event, arg);
+  transcribe(event, arg);
+});
+
+ipcMain.on('test3', async (event, arg) => {
+  translate(event, arg);
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -168,22 +172,42 @@ const setupPythonEnvironment = () => {
   }
 }
 
-const test = async (event:Electron.IpcMainEvent, srcPath:string) => {
-  console.log('테슽트 : ', srcPath);
-  console.log('테슽트 : ', `${srcPath.substring(0,srcPath.lastIndexOf('.'))}.vtt`);
-  const trgPath = `${srcPath.substring(0,srcPath.lastIndexOf('\\'))}`;
+const transcribe = async (event:Electron.IpcMainEvent, srcPath:string) => {
+  console.log('transcribe srcPath: ', srcPath);
+  console.log('transcribe srcPath: ', `${srcPath.substring(0,srcPath.lastIndexOf('.'))}.vtt`);
+  const trgDir = `${srcPath.substring(0,srcPath.lastIndexOf('\\'))}`;
   const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
   const model = 'base';
 
-  const cmdCommand = `start cmd.exe /k "call "${activateScript}" && whisper "${srcPath}" --model ${model} --output_format vtt --output_dir "${trgPath}" && exit"`;
+  const cmdCommand = `start cmd.exe /k "call "${activateScript}" && whisper "${srcPath}" --model ${model} --output_format vtt --output_dir "${trgDir}" && exit"`;
   const whisper = spawn('cmd.exe', ['/c', cmdCommand], { detached: true, shell: true });
   whisper.on('close', (code) => {
     if (code === 0) {
       // console.log('pytorch 패키지가 성공적으로 설치되었습니다.');
       event.reply('test', 'whisper 실행 완료');
+      event.reply('test2', `${srcPath.substring(0,srcPath.lastIndexOf('.'))}.vtt`);
     }
   });
 }
+
+const translate = async (event:Electron.IpcMainEvent, arg:Array<string>) => {
+  console.log('테슽트 : ', arg[0]);
+  console.log('테슽트 : ', `${arg[0].substring(0,arg[0].lastIndexOf('.'))}_${arg[1]}.vtt`);
+  const trgPath = `${arg[0].substring(0,arg[0].lastIndexOf('.'))}_${arg[1]}.vtt`;
+  const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
+  const pythonScriptPath = app.isPackaged?path.join(process.resourcesPath, 'venv_installer','translate.py'):path.join(app.getAppPath(), 'venv_installer','translate.py');
+
+  const cmdCommand = `start cmd.exe /k "call "${activateScript}" && python "${pythonScriptPath}" "${arg[0]}" "${trgPath}" ${arg[1]} && exit"`;
+  const whisper = spawn('cmd.exe', ['/c', cmdCommand], { detached: true, shell: true });
+  whisper.on('close', (code) => {
+    if (code === 0) {
+      // console.log('pytorch 패키지가 성공적으로 설치되었습니다.');
+      event.reply('test', 'tranlate 실행 완료');
+    }
+  });
+}
+
+
 const installPythonPackages = async (event:Electron.IpcMainEvent) => {
   const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
   console.log('activateScript : ', activateScript)
