@@ -1,5 +1,3 @@
-/* eslint global-require: off, no-console: off, promise/always-return: off */
-
 /**
  * This module executes inside of electron's main process. You can start
  * electron renderer process from here and communicate with the other processes
@@ -50,7 +48,7 @@ ipcMain.on('test', async (event, arg) => {
 });
 
 ipcMain.on('test2', async (event, arg) => {
-
+  test(event, arg);
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -133,8 +131,8 @@ const createWindow = async () => {
   new AppUpdater();
 };
 
-const envPath = app.isPackaged?path.join(process.resourcesPath, 'env'):path.join(app.getAppPath(), 'env');
-const packagePath = app.isPackaged?path.join(process.resourcesPath, 'env_installer','python399.tar.gz'):path.join(app.getAppPath(), 'env_installer','python399.tar.gz');
+const envPath = app.isPackaged?path.join(process.resourcesPath, 'venv'):path.join(app.getAppPath(), 'venv');
+const packagePath = app.isPackaged?path.join(process.resourcesPath, 'venv_installer','test.tar.gz'):path.join(app.getAppPath(), 'venv_installer','test.tar.gz');
 const platform = process.platform;
 const isWin = platform === 'win32';
 
@@ -170,63 +168,35 @@ const setupPythonEnvironment = () => {
   }
 }
 
+const test = async (event:Electron.IpcMainEvent, srcPath:string) => {
+  console.log('테슽트 : ', srcPath);
+  console.log('테슽트 : ', `${srcPath.substring(0,srcPath.lastIndexOf('.'))}.vtt`);
+  const trgPath = `${srcPath.substring(0,srcPath.lastIndexOf('\\'))}`;
+  const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
+  const model = 'base';
+
+  const cmdCommand = `start cmd.exe /k "call "${activateScript}" && whisper "${srcPath}" --model ${model} --output_format vtt --output_dir "${trgPath}" && exit"`;
+  const whisper = spawn('cmd.exe', ['/c', cmdCommand], { detached: true, shell: true });
+  whisper.on('close', (code) => {
+    if (code === 0) {
+      // console.log('pytorch 패키지가 성공적으로 설치되었습니다.');
+      event.reply('test', 'whisper 실행 완료');
+    }
+  });
+}
 const installPythonPackages = async (event:Electron.IpcMainEvent) => {
   const activateScript = path.join(envPath, 'Scripts', 'activate.bat');
   console.log('activateScript : ', activateScript)
   // const installPackagesCmd = `${activateScript} && python -m pip install -v numpy`;
-  const installPackagesCmd = `${activateScript} && conda install -v -y pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch -c conda-forge`;
-  const installPackages = spawn('cmd.exe', ['/c', installPackagesCmd]);
+  // const installPackagesCmd = `${activateScript} && conda install -v -y pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch -c conda-forge`;
+  // const installPackages = spawn('cmd.exe', ['/c', installPackagesCmd]);
 
-  installPackages.stdout.on('data', (data) => {
-    console.log(`패키지 설치 중: ${data}`);
-    event.reply('test', data.toString());
-  });
-
-  installPackages.stderr.on('data', (data) => {
-    console.error(`패키지 설치 오류: ${data}`);
-  });
-
+  const cmdCommand = `start cmd.exe /k "call "${activateScript}" && conda install -v -y pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 ffmpeg -c pytorch -c conda-forge && python -m pip install googletrans==4.0.0rc1 && python -m pip install -U openai-whisper && exit"`;
+  const installPackages = spawn('cmd.exe', ['/c', cmdCommand], { detached: true, shell: true });
   installPackages.on('close', (code) => {
     if (code === 0) {
       // console.log('pytorch 패키지가 성공적으로 설치되었습니다.');
-      // event.reply('test', 'pytorch 패키지가 성공적으로 설치되었습니다.');
-      // Python 스크립트 실행
-      const installPackagesCmd = `${activateScript} && python -m pip install -v -U openai-whisper`;
-      const installPackages = spawn('cmd.exe', ['/c', installPackagesCmd]);
-      installPackages.stdout.on('data', (data) => {
-        console.log(`패키지 설치 중: ${data}`);
-        event.reply('test', data.toString());
-      });
-
-      installPackages.stderr.on('data', (data) => {
-        console.error(`패키지 설치 오류: ${data}`);
-      });
-
-      installPackages.on('close', (code) => {
-        if (code === 0) {
-          event.reply('test', '패키지가 성공적으로 설치되었습니다.');
-        } else {
-          console.error(`패키지 설치 중 오류 발생 (코드: ${code})`);
-        }
-      });
-      // const pythonScript = `-c "print('Hello, World!')"`;
-      // const pythonProcess = spawn(`${activateScript} && python`, [pythonScript]);
-
-      // pythonProcess.stdout.on('data', (data) => {
-      //   console.log(`Python 출력: ${data}`);
-      // });
-
-      // pythonProcess.stderr.on('data', (data) => {
-      //   console.error(`Python 오류: ${data}`);
-      // });
-
-      // pythonProcess.on('close', (code) => {
-      //   if (code === 0) {
-      //     console.log('Python 스크립트가 성공적으로 실행되었습니다.');
-      //   } else {
-      //     console.error(`Python 스크립트 실행 중 오류 발생 (코드: ${code})`);
-      //   }
-      // });
+      event.reply('test', 'python 패키지가 성공적으로 설치되었습니다.');
     } else {
       console.error(`패키지 설치 중 오류 발생 (코드: ${code})`);
     }

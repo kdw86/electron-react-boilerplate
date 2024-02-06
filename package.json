@@ -233,7 +233,7 @@
     },
     "extraResources": [
       "./assets/**",
-      "venv_installer/test.tar.gz"
+      "venv_installer/**"
     ],
     "publish": {
       "provider": "github",
