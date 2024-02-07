@@ -40,7 +40,7 @@ function Hello() {
   };
 
   const test3 = ()=> {
-    window.electron.ipcRenderer.sendMessage('test3', ['C:\\Users\\ssade\\OneDrive\\바탕 화면\\테스트\\한글.vtt', 'en']);
+    window.electron.ipcRenderer.sendMessage('test3', ['C:\\Users\\ssade\\OneDrive\\바탕 화면\\테스트\\한글_en.vtt', 'ko']);
     // if(vttPath){
     //   window.electron.ipcRenderer.sendMessage('test3', [vttPath, 'ko']);
     // }

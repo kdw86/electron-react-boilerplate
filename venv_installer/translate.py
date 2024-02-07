@@ -13,23 +13,29 @@ def translate_vtt_blocks(input_vtt_path, output_vtt_path, dest_lang='ko'):
 
   segments = []  # 타임스탬프와 텍스트 세그먼트 저장
   current_segment = {'timestamp': '', 'text': []}
-  first_line = True
-  max_bytes = 1000
+  max_bytes = 3000
+  tempLine = ''
 
   # 파일 읽기
   with open(input_vtt_path, 'r', encoding='utf-8') as file:
-    for line in file:
-      if first_line and line.startswith('WEBVTT'):
-        first_line = False
+    for i, line in enumerate(file):
+      if i == 0 and line.startswith('WEBVTT'):
         continue  # 'WEBVTT' 헤더는 건너뜀
       if pattern.match(line):
+        if tempLine != '': # index 값이 저장 되어있는데 다음 라인이 timestamp라면 초기화
+          tempLine = ''
         if current_segment['text']:  # 이전 세그먼트 저장
           if current_segment['timestamp']:
             segments.append(current_segment)
           current_segment = {'timestamp': line.strip(), 'text': []}
         else:  # 첫 번째 타임스탬프인 경우
           current_segment['timestamp'] = line.strip()
+      elif line.strip().isdigit(): # 숫자만 올경우 임시로 저장
+        tempLine = line.strip()
       else:
+        if tempLine != '': # index 값이 저장 되어있는데 다음 라인이 공백 혹은 텍스트값이라면 append 시키고 초기화
+          current_segment['text'].append(tempLine)
+          tempLine = ''
         current_segment['text'].append(line.strip())
   if current_segment['text']:  # 마지막 세그먼트 추가
     segments.append(current_segment)
@@ -65,7 +71,7 @@ def translate_vtt_blocks(input_vtt_path, output_vtt_path, dest_lang='ko'):
   with open(output_vtt_path, 'w', encoding='utf-8') as file:
     file.write('WEBVTT\n\n')  # 'WEBVTT' 헤더를 파일 맨 앞에 추가
     for i, segment in enumerate(segments):
-      # file.write(str(i + 1) + '\n')
+      file.write(str(i + 1) + '\n')
       file.write(segment['timestamp'] + '\n')
       for line in segment['text']:
         file.write(translated_text.pop(0) + '\n')
